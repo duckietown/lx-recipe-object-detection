@@ -1,15 +1,15 @@
 # syntax=docker/dockerfile:1.4
 # parameters
-ARG EXERCISE_NAME="<LX_NAME_HERE>"
-ARG DESCRIPTION="<DESCRIPTION_HERE>"
-ARG MAINTAINER="<YOUR_FULL_NAME> (<YOUR_EMAIL_ADDRESS>)"
+ARG EXERCISE_NAME="lx-object-detection"
+ARG DESCRIPTION="Build a deep learning based model to detect duckies and other things"
+ARG MAINTAINER="Liam P"
 
 # ==================================================>
 # ==> Do not change the code below this line
 ARG ARCH
-ARG DISTRO=daffy
+ARG DISTRO=ente
 ARG DOCKER_REGISTRY=docker.io
-ARG BASE_IMAGE=<BASE_IMAGE>
+ARG BASE_IMAGE=dt-machine-learning-base-environment
 ARG BASE_TAG=${DISTRO}-${ARCH}
 ARG LAUNCHER=default
 
@@ -96,3 +96,5 @@ LABEL org.duckietown.label.module.type="exercise" \
     org.duckietown.label.maintainer="${MAINTAINER}"
 # <== Do not change the code above this line
 # <==================================================
+
+ENV YOLOv5_AUTOINSTALL=false

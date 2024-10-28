@@ -1,13 +1,13 @@
 # syntax=docker/dockerfile:1.4
 # parameters
-ARG EXERCISE_NAME="<LX_NAME_HERE>"
-ARG DESCRIPTION="VSCode - <DESCRIPTION_HERE>"
-ARG MAINTAINER="<YOUR_FULL_NAME> (<YOUR_EMAIL_ADDRESS>)"
+ARG EXERCISE_NAME="Object Detection"
+ARG DESCRIPTION="VSCode - Object Detection"
+ARG MAINTAINER="Liam P"
 
 # ==================================================>
 # ==> Do not change the code below this line
 ARG ARCH
-ARG DISTRO=daffy
+ARG DISTRO=ente
 ARG DOCKER_REGISTRY=docker.io
 ARG BASE_IMAGE=dt-vscode
 ARG BASE_TAG=${DISTRO}-${ARCH}
