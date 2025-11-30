@@ -57,8 +57,7 @@ class MLAgent:
         if self.is_sim is not None:
             platform = "sim" if self.is_sim else "real"
             self.output_dir = DATA_COLLECTION_ROOT / f"{platform}"
-
-        self.output_dir.mkdir(parents=True, exist_ok=True)
+            self.output_dir.mkdir(parents=True, exist_ok=True)
 
 
     async def save_camera_intrinsics(self, rdata: RawData):
@@ -141,6 +140,8 @@ class MLAgent:
         rectified_img = self.camera.rectifier.rectify(decoded_image)
 
         if self.data_collection:
+            if self._frame_idx == 0:
+                print(f"Data collection started - capturing the robot's view as it moves!")
             self._frame_idx += 1
             if self._logged_images >= self.max_log_images:
                 print(f"Logging limit reached. Increase the limit if you need to collect more data.")
