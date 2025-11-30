@@ -313,7 +313,7 @@ frames:
     relative_to: ~
     unit: tiles
     pose:
-      x: -1.0
+      x: 1.0
       y: 3.0
       z: 0.0
       roll: 0.0
