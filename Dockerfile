@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1.4
 # parameters
 ARG EXERCISE_NAME="lx-object-detection"
-ARG DESCRIPTION="Build a deep learning based model to detect duckies and other things"
+ARG DESCRIPTION="Build a deep learning based model to detect duckies"
 ARG MAINTAINER="Liam P"
 
 # ==================================================>

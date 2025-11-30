@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1.4
 # parameters
-ARG EXERCISE_NAME="Object Detection"
+ARG EXERCISE_NAME="lx-object-detection"
 ARG DESCRIPTION="VSCode - Object Detection"
 ARG MAINTAINER="Liam P"
 
