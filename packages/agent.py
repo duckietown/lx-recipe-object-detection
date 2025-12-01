@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
+from email.header import Header
 
 import cv2
 import signal
 import asyncio
+from asyncio import AbstractEventLoop
 import argparse
 import numpy as np
 from pathlib import Path
@@ -17,6 +19,8 @@ from duckietown_messages.calibrations.camera_intrinsic import CameraIntrinsicCal
 from duckietown_messages.calibrations.camera_extrinsic import CameraExtrinsicCalibration
 from duckietown_messages.utils.exceptions import DataDecodingError
 from duckietown_messages.sensors.camera import Camera
+from duckietown_messages.actuators.car_lights import CarLights
+from duckietown_messages.colors.rgba import RGBA
 from duckietown_messages.sensors.compressed_image import CompressedImage
 from turbojpeg import TurboJPEG
 from dt_computer_vision.ground_projection import GroundProjector
@@ -32,6 +36,10 @@ class MLAgent:
         self._shutdown = False
         self._robot_name = get_robot_name()
         self.pwm_publisher: Optional[DTPSContext] = None
+        self.led_publisher: Optional[DTPSContext] = None
+        # event loop
+        self._loop: Optional[AbstractEventLoop] = None
+
         self.camera_intrinsics: Optional[CameraIntrinsicCalibration] = None
         self.camera_extrinsics: Optional[CameraExtrinsicCalibration] = None
         self.H: Optional[np.ndarray] = None
@@ -107,6 +115,10 @@ class MLAgent:
 
     async def img_cb(self, data: RawData):
 
+        if self._loop is None:
+            return
+
+
         if self.camera is None:
             if self.camera_info is not None and self.camera_intrinsics is not None:
                 print("Camera info and intrinsics received, initializing camera model")
@@ -163,6 +175,44 @@ class MLAgent:
         except Exception:
             print("Error publishing wheels data")
 
+        white = RGBA(
+            r = 1.0,
+            g = 1.0,
+            b = 1.0,
+            a = 1.0,
+        )
+        red = RGBA(
+            r = 1.0,
+            b = 0.0,
+            g = 0.0,
+            a = 1.0,
+        )
+        black = RGBA(
+            r = 0.0,
+            b = 0.0,
+            g = 0.0,
+            a = 1.0,
+        )
+        led_raw = None
+        if pwm.left == 0.0 and pwm.right == 0.0:
+            # we are in STOP mode publish the back lights red
+
+            led_raw: RawData = CarLights(
+                front_left = white,
+                front_right = white,
+                back_left = red,
+                back_right = red,
+            ).to_rawdata()
+        else:
+            # we are moving turn the brake lights off
+            led_raw: RawData = CarLights(
+                front_left = white,
+                front_right = white,
+                back_left = black,
+                back_right = black,
+            ).to_rawdata()
+
+        asyncio.run_coroutine_threadsafe(self.led_publisher.publish(led_raw), self._loop)
 
     async def worker(self):
         switchboard = (await context("switchboard")).navigate(self._robot_name)
@@ -173,7 +223,7 @@ class MLAgent:
         extr   = await (switchboard / "sensor" / "camera" / "front_center" / "homography").until_ready()
 
         self.pwm_publisher = await (switchboard / "actuator" / "wheels" / "base" / "pwm").until_ready()
-
+        self.led_publisher = await (switchboard / "actuator" / "lights" / "base" / "pattern").until_ready()
         jpeg = jpeg.configure(ContextConfig(patient=True))
         params = params.configure(ContextConfig(patient=True))
         info = info.configure(ContextConfig(patient=True))
@@ -184,7 +234,7 @@ class MLAgent:
         await extr.subscribe(self.save_camera_extrinsics)
         await jpeg.subscribe(self.img_cb)
 
-
+        self._loop = asyncio.get_event_loop()
         await self.join()
 
     async def join(self):
