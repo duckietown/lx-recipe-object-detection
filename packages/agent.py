@@ -163,6 +163,8 @@ class MLAgent:
                 filename = self.output_dir / f"{self._frame_idx}.png"
                 try:
                     cv2.imwrite(str(filename), rectified_img)
+                    if self._logged_images % 10 == 0:
+                        print(f"Saved {self._logged_images} images (press CTRL-C to stop)")
                     self._logged_images += 1
                 except Exception as e:
                     print(f"Failed to save image {filename}: {e}")
