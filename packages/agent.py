@@ -32,7 +32,7 @@ from solution.config import DATA_COLLECTION_ROOT, SAVE_EVERY_N_FRAMES, MAX_LOG_I
 
 
 class MLAgent:
-    def __init__(self, mode: str = "agent", is_sim=None):
+    def __init__(self, mode: str = "agent"):
         self._shutdown = False
         self._robot_name = get_robot_name()
         self.pwm_publisher: Optional[DTPSContext] = None
@@ -59,13 +59,8 @@ class MLAgent:
         self._frame_idx = 0
         self._logged_images = 0
 
-        self.is_sim: Optional[bool] = is_sim
-        self.output_dir: Optional[Path] = None
-
-        if self.is_sim is not None:
-            platform = "sim" if self.is_sim else "real"
-            self.output_dir = DATA_COLLECTION_ROOT / f"{platform}"
-            self.output_dir.mkdir(parents=True, exist_ok=True)
+        self.output_dir = DATA_COLLECTION_ROOT
+        self.output_dir.mkdir(parents=True, exist_ok=True)
 
 
     async def save_camera_intrinsics(self, rdata: RawData):
@@ -160,7 +155,7 @@ class MLAgent:
                 return
             
             if self._frame_idx % self.save_every_n_frames == 0:
-                filename = self.output_dir / f"{self._frame_idx}.png"
+                filename = self.output_dir / f"{self._robot_name}_{self._frame_idx}.png"
                 try:
                     cv2.imwrite(str(filename), rectified_img)
                     self._logged_images += 1
@@ -261,16 +256,7 @@ class MLAgent:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--mode", choices=["agent","data_collection"], default="agent", help="Run mode: 'agent' to control wheels, 'data_collection' to log images")
-    parser.add_argument("--sim", action="store_true", help="Running in simulation")
-    parser.add_argument("--real", action="store_true", help="Running on real hardware")
     args = parser.parse_args()
 
-    if args.mode == "data_collection":
-        if not (args.sim ^ args.real):
-            parser.error("When mode=data_collection, you must specify exactly one of --sim or --real.")
-
-    node = MLAgent(
-        mode=args.mode, 
-        is_sim=args.sim if args.mode == "data_collection" else None
-        )
+    node = MLAgent(mode=args.mode)
     node.spin()
