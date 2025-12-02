@@ -25,7 +25,7 @@ from duckietown_messages.sensors.compressed_image import CompressedImage
 from turbojpeg import TurboJPEG
 from dt_computer_vision.ground_projection import GroundProjector
 
-from model import MLModel
+from solution.model import MLModel
 from solution.config import DATA_COLLECTION_ROOT, SAVE_EVERY_N_FRAMES, MAX_LOG_IMAGES
 
 
@@ -151,7 +151,7 @@ class MLAgent:
                 print(f"Data collection started - capturing the robot's view as it moves!")
             self._frame_idx += 1
             if self._logged_images >= self.max_log_images:
-                print(f"Logging limit reached. Increase the limit if you need to collect more data.")
+                print(f"Logging limit reached. Increase the limit if you need to collect more data of press CTRL-C to exit.")
                 return
             
             if self._frame_idx % self.save_every_n_frames == 0:
