@@ -12,6 +12,8 @@ from typing import Union, Dict, Optional
 
 from dt_computer_vision.camera import CameraModel
 from dtps import context, ContextConfig, DTPSContext
+from dt_node_utils.node import Node
+from dt_node_utils import NodeType
 from dtps_http import RawData
 from dt_robot_utils import get_robot_name
 from duckietown_messages.actuators.differential_pwm import DifferentialPWM
@@ -29,14 +31,41 @@ from solution.model import MLModel
 from solution.config import DATA_COLLECTION_ROOT, SAVE_EVERY_N_FRAMES, MAX_LOG_IMAGES
 
 
+def draw_detections(img, detections):
+    # Make a copy so the original isn't modified
+    out = img.copy()
+
+    for det in detections:
+        x1, y1, x2, y2, score = det[:5]
+
+        # Draw bounding box
+        cv2.rectangle(out, (int(x1), int(y1)), (int(x2), int(y2)),
+                      color=(0, 255, 0), thickness=2)
+
+        # Label with score (rounded to 2 decimals)
+        label = f"{score:.2f}"
+
+        # Choose a location slightly above the top-left corner
+        cv2.putText(out, label, (int(x1), int(y1) - 5),
+                    cv2.FONT_HERSHEY_SIMPLEX,
+                    0.6, (0, 255, 0), 2, cv2.LINE_AA)
+
+    return out
 
 
-class MLAgent:
+class MLAgent(Node):
     def __init__(self, mode: str = "agent"):
+        node_name: str = f"object_detection_agent"
+        super().__init__(
+            name=node_name,
+            kind=NodeType.GENERIC,
+            description="A node detecting duckies"
+        )
         self._shutdown = False
         self._robot_name = get_robot_name()
         self.pwm_publisher: Optional[DTPSContext] = None
         self.led_publisher: Optional[DTPSContext] = None
+        self.obj_img_publisher: Optional[DTPSContext] = None
         # event loop
         self._loop: Optional[AbstractEventLoop] = None
 
@@ -165,7 +194,12 @@ class MLAgent:
                     print(f"Failed to save image {filename}: {e}")
             return
 
-        pwm = self.model.get_wheel_velocities_from_image(rectified_img)
+        [pwm, detections] = self.model.get_wheel_velocities_from_image(rectified_img)
+
+        annotated_img = draw_detections(rectified_img, detections)
+        raw_img_data = CompressedImage(format="jpeg", data=self._jpeg.encode(annotated_img)).to_rawdata()
+        asyncio.run_coroutine_threadsafe(self.obj_img_publisher.publish(raw_img_data),
+                                         self._loop)
 
         try:
             await self.pwm_publisher.publish(pwm.to_rawdata())
@@ -212,6 +246,7 @@ class MLAgent:
         asyncio.run_coroutine_threadsafe(self.led_publisher.publish(led_raw), self._loop)
 
     async def worker(self):
+        await self.dtps_init()
         switchboard = (await context("switchboard")).navigate(self._robot_name)
 
         jpeg = await (switchboard / "sensor" / "camera" / "front_center" / "jpeg").until_ready()
@@ -221,6 +256,13 @@ class MLAgent:
 
         self.pwm_publisher = await (switchboard / "actuator" / "wheels" / "base" / "pwm").until_ready()
         self.led_publisher = await (switchboard / "actuator" / "lights" / "base" / "pattern").until_ready()
+
+        out: DTPSContext = self.context / "out"
+        obj_img_queue = await ( out / "jpeg").queue_create()
+
+        self.obj_img_publisher = await obj_img_queue.publisher()
+        await self.dtps_expose()
+        await (switchboard / "object_detector_image" / "jpeg").expose(obj_img_queue)
         jpeg = jpeg.configure(ContextConfig(patient=True))
         params = params.configure(ContextConfig(patient=True))
         info = info.configure(ContextConfig(patient=True))
