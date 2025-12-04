@@ -145,7 +145,7 @@ class MLAgent(Node):
 
         if self.camera is None:
             if self.camera_info is not None and self.camera_intrinsics is not None:
-                print("Camera info and intrinsics received, initializing camera model")
+                print("Camera info and intrinsics received, initializing camera model.")
                 
                 self.camera = CameraModel(
                     width=self.camera_info.width,
@@ -162,7 +162,7 @@ class MLAgent(Node):
                     self.model.set_ground_projector(self.ground_projector)
 
             else:
-                print("Still waiting for camera info or intrinsics")
+                print("Still waiting for camera info or intrinsics.")
                 return
 
         try:
@@ -180,7 +180,7 @@ class MLAgent(Node):
                 print(f"Data collection started - capturing the robot's view as it moves!")
             self._frame_idx += 1
             if self._logged_images >= self.max_log_images:
-                print(f"Logging limit reached. Increase the limit if you need to collect more data of press CTRL-C to exit.")
+                print(f"Logging limit reached. Increase the limit if you need to collect more data or press CTRL-C to exit.")
                 return
             
             if self._frame_idx % self.save_every_n_frames == 0:
@@ -204,7 +204,7 @@ class MLAgent(Node):
         try:
             await self.pwm_publisher.publish(pwm.to_rawdata())
         except Exception:
-            print("Error publishing wheels data")
+            print("Error publishing wheels data.")
 
         white = RGBA(
             r = 1.0,
@@ -291,9 +291,9 @@ class MLAgent(Node):
     def spin(self):
         try:
             asyncio.run(self.worker())
-        except RuntimeError:
+        except RuntimeError as e:
             if not self.is_shutdown:
-                print(f"An error occurred while running the event loop: {RuntimeError}")
+                print(f"An error occurred while running the event loop: {e}")
                 raise
 
 
