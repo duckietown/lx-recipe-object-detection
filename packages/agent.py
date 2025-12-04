@@ -145,7 +145,7 @@ class MLAgent(Node):
 
         if self.camera is None:
             if self.camera_info is not None and self.camera_intrinsics is not None:
-                print("Camera info and intrinsics received, initializing camera model")
+                print("Camera info and intrinsics received, initializing camera model.")
                 
                 self.camera = CameraModel(
                     width=self.camera_info.width,
@@ -162,7 +162,7 @@ class MLAgent(Node):
                     self.model.set_ground_projector(self.ground_projector)
 
             else:
-                print("Still waiting for camera info or intrinsics")
+                print("Still waiting for camera info or intrinsics.")
                 return
 
         try:
@@ -204,7 +204,7 @@ class MLAgent(Node):
         try:
             await self.pwm_publisher.publish(pwm.to_rawdata())
         except Exception:
-            print("Error publishing wheels data")
+            print("Error publishing wheels data.")
 
         white = RGBA(
             r = 1.0,
