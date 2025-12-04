@@ -180,7 +180,7 @@ class MLAgent(Node):
                 print(f"Data collection started - capturing the robot's view as it moves!")
             self._frame_idx += 1
             if self._logged_images >= self.max_log_images:
-                print(f"Logging limit reached. Increase the limit if you need to collect more data of press CTRL-C to exit.")
+                print(f"Logging limit reached. Increase the limit if you need to collect more data or press CTRL-C to exit.")
                 return
             
             if self._frame_idx % self.save_every_n_frames == 0:
