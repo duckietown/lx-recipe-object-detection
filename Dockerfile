@@ -92,6 +92,15 @@ LABEL org.duckietown.label.module.type="exercise" \
 # <== Do not change the code above this line
 # <==================================================
 
+# Install lib-dt-computer-vision
+RUN pip3 install --no-deps git+https://github.com/duckietown/lib-dt-computer-vision.git@ente
+
+# Install onnxruntime for Jetson (L4T R32.7.1 / JetPack 4.6)
+RUN wget -q https://nvidia.box.com/shared/static/jy7nqva7l88mq9i8bw3g3sklzf4kccn2.whl \
+    -O /tmp/onnxruntime_gpu-1.10.0-cp36-cp36m-linux_aarch64.whl && \
+    pip3 install /tmp/onnxruntime_gpu-1.10.0-cp36-cp36m-linux_aarch64.whl && \
+    rm /tmp/onnxruntime_gpu-1.10.0-cp36-cp36m-linux_aarch64.whl
+
 ENV YOLOv5_AUTOINSTALL=false
 # make `packages/` directory discoverable
 ENV PYTHONPATH=${REPO_PATH}/packages
