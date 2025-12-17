@@ -91,7 +91,11 @@ LABEL org.duckietown.label.module.type="exercise" \
     org.duckietown.label.maintainer="${MAINTAINER}"
 # <== Do not change the code above this line
 # <==================================================
-
+# Only run on arm64v8 architecture (this is stuck on Python 3.6)
+RUN if [ "$ARCH" = "arm64v8" ]; then \
+    rm -rf /usr/local/lib/python3.6/dist-packages/cv2 && \
+    pip3 install opencv-python-headless==4.6.0.66; \
+    fi
 # Install lib-dt-computer-vision
 RUN pip3 install --no-deps git+https://github.com/duckietown/lib-dt-computer-vision.git@ente
 
