@@ -6,7 +6,7 @@
 onnx
 onnxslim
 
---index-url https://download.pytorch.org/whl/cu124
+--index-url https://download.pytorch.org/whl/nightly/cu124
 --extra-index-url https://pypi.org/simple
 torch; platform_machine == "x86_64"
 torchvision; platform_machine == "x86_64"
@@ -22,3 +22,4 @@ einops
 timm
 ftfy
 regex
+jedi
