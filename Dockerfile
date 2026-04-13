@@ -17,6 +17,7 @@ ARG LAUNCHER=default
 FROM ${DOCKER_REGISTRY}/duckietown/${BASE_IMAGE}:${BASE_TAG} as base
 
 # recall all arguments
+ARG ARCH
 ARG DISTRO
 ARG EXERCISE_NAME
 ARG DESCRIPTION
@@ -92,14 +93,21 @@ LABEL org.duckietown.label.module.type="exercise" \
 # <== Do not change the code above this line
 # <==================================================
 
-# Install lib-dt-computer-vision
-RUN pip3 install --no-deps git+https://github.com/duckietown/lib-dt-computer-vision.git@ente
+ENV ARCH=${ARCH}
 
-# Install onnxruntime for Jetson (L4T R32.7.1 / JetPack 4.6)
-RUN wget -q https://nvidia.box.com/shared/static/jy7nqva7l88mq9i8bw3g3sklzf4kccn2.whl \
-    -O /tmp/onnxruntime_gpu-1.10.0-cp36-cp36m-linux_aarch64.whl && \
-    pip3 install /tmp/onnxruntime_gpu-1.10.0-cp36-cp36m-linux_aarch64.whl && \
-    rm /tmp/onnxruntime_gpu-1.10.0-cp36-cp36m-linux_aarch64.whl
+RUN echo " arch is $ARCH "
+
+RUN if [ "$ARCH" = "arm64v8" ]; then \
+       wget -q https://nvidia.box.com/shared/static/jy7nqva7l88mq9i8bw3g3sklzf4kccn2.whl \
+       -O /tmp/onnxruntime_gpu-1.10.0-cp36-cp36m-linux_aarch64.whl && \
+       pip3 install /tmp/onnxruntime_gpu-1.10.0-cp36-cp36m-linux_aarch64.whl && \
+       rm /tmp/onnxruntime_gpu-1.10.0-cp36-cp36m-linux_aarch64.whl && \
+       pip3 install opencv-python-headless==4.5.5.64 && \
+       pip3 install --no-deps git+https://github.com/duckietown/lib-dt-computer-vision.git@ente; \
+    fi
+
+
+
 
 ENV YOLOv5_AUTOINSTALL=false
 # make `packages/` directory discoverable
