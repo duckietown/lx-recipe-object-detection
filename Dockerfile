@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1.4
 # parameters
 ARG EXERCISE_NAME="lx-object-detection"
-ARG DESCRIPTION="Build a deep learning based model to detect duckies and other things"
+ARG DESCRIPTION="Build a deep learning based model to detect duckies"
 ARG MAINTAINER="Liam P"
 
 # ==================================================>
@@ -70,11 +70,6 @@ COPY --from=meat ./assets/. "${REPO_PATH}/assets/"
 # copy the source code (meat)
 COPY --from=meat ./packages/. "${REPO_PATH}/packages/"
 
-# build packages
-RUN . /opt/ros/${ROS_DISTRO}/setup.sh && \
-  catkin build \
-    --workspace ${CATKIN_WS_DIR}/
-
 # install launcher scripts
 COPY --from=recipe ./launchers/. "${LAUNCH_PATH}/"
 RUN dt-install-launchers "${LAUNCH_PATH}"
@@ -98,3 +93,5 @@ LABEL org.duckietown.label.module.type="exercise" \
 # <==================================================
 
 ENV YOLOv5_AUTOINSTALL=false
+# make `packages/` directory discoverable
+ENV PYTHONPATH=${REPO_PATH}/packages
