@@ -34,7 +34,7 @@ ARG TARGETVARIANT
 RUN dt-build-env-check "${EXERCISE_NAME}" "${MAINTAINER}" "${DESCRIPTION}"
 
 # define/create repository path
-ARG REPO_PATH="${CATKIN_WS_DIR}/src/${EXERCISE_NAME}"
+ARG REPO_PATH="/code/src/${EXERCISE_NAME}"
 RUN mkdir -p "${REPO_PATH}"
 WORKDIR "${REPO_PATH}"
 
