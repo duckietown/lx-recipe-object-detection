@@ -29,7 +29,9 @@ from turbojpeg import TurboJPEG
 from dt_computer_vision.ground_projection import GroundProjector
 
 from solution.model import MLModel
-from solution.config import DATA_COLLECTION_ROOT, SAVE_EVERY_N_FRAMES, MAX_LOG_IMAGES
+from solution.config import DATA_COLLECTION_ROOT, SAVE_EVERY_N_FRAMES, MAX_LOG_IMAGES, \
+    BACKEND, MODEL_PATH, ONNX_MODEL_PATH
+from utils import TRTBackend, ONNXBackend
 
 
 def draw_detections(img, detections):
@@ -76,7 +78,10 @@ class MLAgent(Node):
         self.ground_projector: Optional[GroundProjector] = None
         self.camera_info: Optional[Camera] = None
         self.camera: Optional[CameraModel] = None
-        self.model = MLModel()
+
+        backend = TRTBackend(ONNX_MODEL_PATH, MODEL_PATH) if BACKEND == "trt" else ONNXBackend(ONNX_MODEL_PATH)
+        self.model = MLModel(backend)
+        
         self.stopped = True
         # register sigint handler
         signal.signal(signal.SIGINT, self._sigint_handler)
