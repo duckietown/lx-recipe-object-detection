@@ -1,5 +1,6 @@
 # LIST YOUR PYTHON3 PACKAGES HERE
 
-onnxruntime==1.19.2
-onnxruntime-gpu; platform_machine == "x86_64"
-lib-dt-computer-vision==1.0.0
+onnxruntime
+#onnxruntime-gpu; platform_machine == "x86_64"
+#lib-dt-computer-vision==1.0.0
+imageio

@@ -91,6 +91,19 @@ LABEL org.duckietown.label.module.type="exercise" \
     org.duckietown.label.maintainer="${MAINTAINER}"
 # <== Do not change the code above this line
 # <==================================================
+# Only run on arm64v8 architecture (this is stuck on Python 3.6)
+RUN if [ "$ARCH" = "arm64v8" ]; then \
+    rm -rf /usr/local/lib/python3.6/dist-packages/cv2 && \
+    pip3 install opencv-python-headless==4.6.0.66; \
+    fi
+# Install lib-dt-computer-vision
+RUN pip3 install --no-deps git+https://github.com/duckietown/lib-dt-computer-vision.git@ente
+
+# Install onnxruntime for Jetson (L4T R32.7.1 / JetPack 4.6)
+RUN wget -q https://nvidia.box.com/shared/static/jy7nqva7l88mq9i8bw3g3sklzf4kccn2.whl \
+    -O /tmp/onnxruntime_gpu-1.10.0-cp36-cp36m-linux_aarch64.whl && \
+    pip3 install /tmp/onnxruntime_gpu-1.10.0-cp36-cp36m-linux_aarch64.whl && \
+    rm /tmp/onnxruntime_gpu-1.10.0-cp36-cp36m-linux_aarch64.whl
 
 ENV YOLOv5_AUTOINSTALL=false
 # make `packages/` directory discoverable
