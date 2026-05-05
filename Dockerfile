@@ -17,6 +17,7 @@ ARG LAUNCHER=default
 FROM ${DOCKER_REGISTRY}/duckietown/${BASE_IMAGE}:${BASE_TAG} as base
 
 # recall all arguments
+ARG ARCH
 ARG DISTRO
 ARG EXERCISE_NAME
 ARG DESCRIPTION
@@ -91,6 +92,22 @@ LABEL org.duckietown.label.module.type="exercise" \
     org.duckietown.label.maintainer="${MAINTAINER}"
 # <== Do not change the code above this line
 # <==================================================
+
+ENV ARCH=${ARCH}
+
+RUN echo " arch is $ARCH "
+
+RUN if [ "$ARCH" = "arm64v8" ]; then \
+       wget -q https://nvidia.box.com/shared/static/jy7nqva7l88mq9i8bw3g3sklzf4kccn2.whl \
+       -O /tmp/onnxruntime_gpu-1.10.0-cp36-cp36m-linux_aarch64.whl && \
+       pip3 install /tmp/onnxruntime_gpu-1.10.0-cp36-cp36m-linux_aarch64.whl && \
+       rm /tmp/onnxruntime_gpu-1.10.0-cp36-cp36m-linux_aarch64.whl && \
+       pip3 install opencv-python-headless==4.5.5.64 && \
+       pip3 install --no-deps git+https://github.com/duckietown/lib-dt-computer-vision.git@ente; \
+    fi
+
+
+
 
 ENV YOLOv5_AUTOINSTALL=false
 # make `packages/` directory discoverable

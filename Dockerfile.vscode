@@ -45,8 +45,8 @@ RUN dt-apt-install /tmp/dependencies-apt.txt
 # install python3 dependencies
 ARG PIP_INDEX_URL="https://pypi.org/simple"
 ENV PIP_INDEX_URL=${PIP_INDEX_URL}
-COPY --from=recipe ./dependencies-py3.* "/tmp/"
-RUN python3 -m pip install -r /tmp/dependencies-py3.txt
+COPY --from=recipe ./dependencies-py3.txt ./dependencies-vscode.txt "/tmp/"
+RUN python3 -m pip install -r /tmp/dependencies-vscode.txt
 
 # copy the source code (recipe)
 COPY --from=recipe ./packages "${REPO_PATH}/packages"
