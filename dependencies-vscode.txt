@@ -1,0 +1,25 @@
+# Python dependencies for VSCode/VNC editor environments
+# Includes base dependencies plus training/export extras
+
+-r dependencies-py3.txt
+
+onnx
+onnxslim
+
+--index-url https://download.pytorch.org/whl/nightly/cu124
+--extra-index-url https://pypi.org/simple
+torch; platform_machine == "x86_64"
+torchvision; platform_machine == "x86_64"
+ultralytics
+huggingface_hub
+iopath
+ipywidgets
+ipycanvas
+ipympl
+pycocotools
+decord
+einops
+timm
+ftfy
+regex
+jedi

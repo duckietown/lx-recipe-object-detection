@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 from email.header import Header
 
+
 import cv2
 import signal
 import asyncio
@@ -33,24 +34,24 @@ from solution.config import DATA_COLLECTION_ROOT, SAVE_EVERY_N_FRAMES, MAX_LOG_I
 
 def draw_detections(img, detections):
     # Make a copy so the original isn't modified
-    out = img.copy()
+    # out = img.copy()
 
     for det in detections:
         x1, y1, x2, y2, score = det[:5]
 
         # Draw bounding box
-        cv2.rectangle(out, (int(x1), int(y1)), (int(x2), int(y2)),
+        cv2.rectangle(img, (int(x1), int(y1)), (int(x2), int(y2)),
                       color=(0, 255, 0), thickness=2)
 
         # Label with score (rounded to 2 decimals)
         label = f"{score:.2f}"
 
         # Choose a location slightly above the top-left corner
-        cv2.putText(out, label, (int(x1), int(y1) - 5),
+        cv2.putText(img, label, (int(x1), int(y1) - 5),
                     cv2.FONT_HERSHEY_SIMPLEX,
                     0.6, (0, 255, 0), 2, cv2.LINE_AA)
 
-    return out
+    return img
 
 
 class MLAgent(Node):
@@ -76,6 +77,7 @@ class MLAgent(Node):
         self.camera_info: Optional[Camera] = None
         self.camera: Optional[CameraModel] = None
         self.model = MLModel()
+        self.stopped = True
         # register sigint handler
         signal.signal(signal.SIGINT, self._sigint_handler)
         self._jpeg = TurboJPEG()
@@ -142,9 +144,9 @@ class MLAgent(Node):
         if self._loop is None:
             return
 
-
+        
         if self.camera is None:
-            if self.camera_info is not None and self.camera_intrinsics is not None:
+            if self.camera_info is not None and self.camera_intrinsics is not None and self.H is not None:
                 print("Camera info and intrinsics received, initializing camera model.")
                 
                 self.camera = CameraModel(
@@ -157,24 +159,28 @@ class MLAgent(Node):
                     H=self.H
                 )
 
-                if self.H is not None:
-                    self.ground_projector = GroundProjector(self.camera)
-                    self.model.set_ground_projector(self.ground_projector)
+                self.ground_projector = GroundProjector(self.camera)
+                self.model.set_ground_projector(self.ground_projector)
 
             else:
                 print("Still waiting for camera info or intrinsics.")
                 return
 
+            
+            
         try:
             jpeg_data: CompressedImage = CompressedImage.from_rawdata(data).data
         except DataDecodingError as e:
             print(f"Failed to decode an incoming message: {e.message}")
             return
 
+        
         image_array = (np.frombuffer(jpeg_data,np.uint8))
         decoded_image = self._jpeg.decode(image_array)
         rectified_img = self.camera.rectifier.rectify(decoded_image)
 
+
+        
         if self.data_collection:
             if self._frame_idx == 0:
                 print(f"Data collection started - capturing the robot's view as it moves!")
@@ -196,15 +202,14 @@ class MLAgent(Node):
 
         [pwm, detections] = self.model.get_wheel_velocities_from_image(rectified_img)
 
-        annotated_img = draw_detections(rectified_img, detections)
-        raw_img_data = CompressedImage(format="jpeg", data=self._jpeg.encode(annotated_img)).to_rawdata()
-        asyncio.run_coroutine_threadsafe(self.obj_img_publisher.publish(raw_img_data),
-                                         self._loop)
-
+        
         try:
             await self.pwm_publisher.publish(pwm.to_rawdata())
         except Exception:
             print("Error publishing wheels data.")
+
+        
+
 
         white = RGBA(
             r = 1.0,
@@ -225,7 +230,7 @@ class MLAgent(Node):
             a = 1.0,
         )
         led_raw = None
-        if pwm.left == 0.0 and pwm.right == 0.0:
+        if pwm.left == 0.0 and pwm.right == 0.0 and not self.stopped:
             # we are in STOP mode publish the back lights red
 
             led_raw: RawData = CarLights(
@@ -234,7 +239,8 @@ class MLAgent(Node):
                 back_left = red,
                 back_right = red,
             ).to_rawdata()
-        else:
+            self.stopped = True
+        elif (pwm.left != 0.0 or pwm.right != 0.0) and self.stopped:
             # we are moving turn the brake lights off
             led_raw: RawData = CarLights(
                 front_left = white,
@@ -242,8 +248,16 @@ class MLAgent(Node):
                 back_left = black,
                 back_right = black,
             ).to_rawdata()
+            self.stopped = False
 
         asyncio.run_coroutine_threadsafe(self.led_publisher.publish(led_raw), self._loop)
+
+        annotated_img = draw_detections(rectified_img, detections)
+        raw_img_data = CompressedImage(format="jpeg", data=self._jpeg.encode(annotated_img)).to_rawdata()
+        asyncio.run_coroutine_threadsafe(self.obj_img_publisher.publish(raw_img_data),
+                                         self._loop)
+
+
 
     async def worker(self):
         await self.dtps_init()
@@ -290,7 +304,9 @@ class MLAgent(Node):
 
     def spin(self):
         try:
-            asyncio.run(self.worker())
+            # Python 3.6 compatibility: asyncio.run() doesn't exist
+            loop = asyncio.get_event_loop()
+            loop.run_until_complete(self.worker())
         except RuntimeError as e:
             if not self.is_shutdown:
                 print(f"An error occurred while running the event loop: {e}")
