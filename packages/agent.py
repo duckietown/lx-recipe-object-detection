@@ -290,7 +290,9 @@ class MLAgent(Node):
 
     def spin(self):
         try:
-            asyncio.run(self.worker())
+            # Python 3.6 compatibility: asyncio.run() doesn't exist
+            loop = asyncio.get_event_loop()
+            loop.run_until_complete(self.worker())
         except RuntimeError as e:
             if not self.is_shutdown:
                 print(f"An error occurred while running the event loop: {e}")
