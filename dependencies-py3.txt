@@ -1,5 +1,7 @@
 # LIST YOUR PYTHON3 PACKAGES HERE
 
-onnxruntime==1.19.2
+# CPU inference on every architecture (this is what runs on the robot)
+onnxruntime
+# CUDA inference on an x86_64 laptop (`--local`) with an NVIDIA GPU
 onnxruntime-gpu; platform_machine == "x86_64"
 lib-dt-computer-vision==1.0.0

@@ -1,0 +1,32 @@
+# Python dependencies of the VSCode editor image (Dockerfile.vscode).
+#
+# The robot-side dependencies plus what the training notebooks need: SAM3 auto-labelling,
+# YOLO training and ONNX export. Everything listed here is available from PyPI for both
+# amd64 and arm64 editors (plain CPU torch on arm64, CUDA-enabled torch on amd64).
+
+-r dependencies-py3.txt
+
+# SAM3 requires numpy < 2
+numpy>=1.26,<2
+
+# training and export
+torch
+torchvision
+ultralytics
+onnx
+onnxslim
+
+# SAM3 (installed from its git clone by the local-training notebook) and its dependencies
+huggingface_hub
+iopath
+timm
+einops
+ftfy
+regex
+pycocotools
+
+# notebook widgets
+ipywidgets
+ipycanvas
+ipympl
+jedi

@@ -9,7 +9,7 @@ ARG MAINTAINER="Liam P"
 ARG ARCH
 ARG DISTRO=ente
 ARG DOCKER_REGISTRY=docker.io
-ARG BASE_IMAGE=dt-machine-learning-base-environment
+ARG BASE_IMAGE=dt-commons
 ARG BASE_TAG=${DISTRO}-${ARCH}
 ARG LAUNCHER=default
 
