@@ -9,7 +9,7 @@ ARG MAINTAINER="Liam P"
 ARG ARCH
 ARG DISTRO=ente
 ARG DOCKER_REGISTRY=docker.io
-ARG BASE_IMAGE=dt-machine-learning-base-environment
+ARG BASE_IMAGE=dt-commons
 ARG BASE_TAG=${DISTRO}-${ARCH}
 ARG LAUNCHER=default
 
@@ -49,14 +49,22 @@ ENV DT_MODULE_TYPE="exercise" \
     DT_LAUNCHER="${LAUNCHER}"
 
 # install apt dependencies
-COPY --from=recipe ./dependencies-apt.txt "${REPO_PATH}/"
-RUN dt-apt-install ${REPO_PATH}/dependencies-apt.txt
+COPY --from=recipe ./dependencies-apt.txt ./dependencies-apt.noble.txt "${REPO_PATH}/"
+RUN dt-apt-install ${REPO_PATH}/dependencies-apt.txt && \
+    if [ "$(. /etc/os-release && echo "${VERSION_CODENAME}")" = "noble" ]; then \
+        dt-apt-install ${REPO_PATH}/dependencies-apt.noble.txt; \
+    fi
 
 # install python3 dependencies
 ARG PIP_INDEX_URL="https://pypi.org/simple"
 ENV PIP_INDEX_URL=${PIP_INDEX_URL}
 COPY --from=recipe ./dependencies-py3.* "${REPO_PATH}/"
 RUN dt-pip3-install "${REPO_PATH}/dependencies-py3.*"
+
+# install ONNX Runtime, unless the base image provides it (dt-machine-learning-base-environment provides the GPU builds:
+# TensorRT/CUDA on the Jetson, CUDA on an x86_64 laptop)
+COPY --from=recipe ./dependencies-onnxruntime.txt "${REPO_PATH}/"
+RUN python3 -c "import onnxruntime" 2>/dev/null || dt-pip3-install "${REPO_PATH}/dependencies-onnxruntime.txt"
 
 # copy the assets (recipe)
 COPY --from=recipe ./assets "${REPO_PATH}/assets"

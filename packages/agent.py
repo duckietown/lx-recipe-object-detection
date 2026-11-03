@@ -1,14 +1,11 @@
 #!/usr/bin/env python3
-from email.header import Header
-
 import cv2
 import signal
 import asyncio
 from asyncio import AbstractEventLoop
 import argparse
 import numpy as np
-from pathlib import Path
-from typing import Union, Dict, Optional
+from typing import Optional
 
 from dt_computer_vision.camera import CameraModel
 from dtps import context, ContextConfig, DTPSContext
@@ -28,7 +25,8 @@ from turbojpeg import TurboJPEG
 from dt_computer_vision.ground_projection import GroundProjector
 
 from solution.model import MLModel
-from solution.config import DATA_COLLECTION_ROOT, SAVE_EVERY_N_FRAMES, MAX_LOG_IMAGES
+from solution.config import DATA_COLLECTION_ROOT, SAVE_EVERY_N_FRAMES, MAX_LOG_IMAGES, BACKEND, MODEL_PATH
+from utils import BACKENDS
 
 
 def draw_detections(img, detections):
@@ -53,6 +51,15 @@ def draw_detections(img, detections):
     return out
 
 
+def make_backend():
+    """Instantiate the inference backend selected in `solution/config.py`."""
+    try:
+        backend_cls = BACKENDS[BACKEND]
+    except KeyError:
+        raise ValueError(f"Unknown inference backend '{BACKEND}', available backends: {sorted(BACKENDS)}")
+    return backend_cls(MODEL_PATH)
+
+
 class MLAgent(Node):
     def __init__(self, mode: str = "agent"):
         node_name: str = f"object_detection_agent"
@@ -75,13 +82,19 @@ class MLAgent(Node):
         self.ground_projector: Optional[GroundProjector] = None
         self.camera_info: Optional[Camera] = None
         self.camera: Optional[CameraModel] = None
-        self.model = MLModel()
-        # register sigint handler
-        signal.signal(signal.SIGINT, self._sigint_handler)
-        self._jpeg = TurboJPEG()
 
         self.mode = mode
         self.data_collection = self.mode == "data_collection"
+
+        # the model is only needed in `agent` mode (there is no trained model yet when collecting data)
+        self.model: Optional[MLModel] = None if self.data_collection else MLModel(make_backend())
+        # whether the robot is currently stopped (None: unknown, nothing published yet), used to publish the LEDs
+        # pattern only when it changes
+        self.stopped: Optional[bool] = None
+
+        # register sigint handler
+        signal.signal(signal.SIGINT, self._sigint_handler)
+        self._jpeg = TurboJPEG()
 
         self.save_every_n_frames = SAVE_EVERY_N_FRAMES
         self.max_log_images = MAX_LOG_IMAGES
@@ -142,10 +155,10 @@ class MLAgent(Node):
         if self._loop is None:
             return
 
-
         if self.camera is None:
-            if self.camera_info is not None and self.camera_intrinsics is not None:
-                print("Camera info and intrinsics received, initializing camera model.")
+            # the camera model (and the ground projector) need the camera info, the intrinsics and the homography
+            if self.camera_info is not None and self.camera_intrinsics is not None and self.H is not None:
+                print("Camera info, intrinsics and extrinsics received, initializing camera model.")
                 
                 self.camera = CameraModel(
                     width=self.camera_info.width,
@@ -157,12 +170,12 @@ class MLAgent(Node):
                     H=self.H
                 )
 
-                if self.H is not None:
-                    self.ground_projector = GroundProjector(self.camera)
+                self.ground_projector = GroundProjector(self.camera)
+                if self.model is not None:
                     self.model.set_ground_projector(self.ground_projector)
 
             else:
-                print("Still waiting for camera info or intrinsics.")
+                print("Still waiting for camera info, intrinsics or extrinsics.")
                 return
 
         try:
@@ -195,17 +208,17 @@ class MLAgent(Node):
             return
 
         [pwm, detections] = self.model.get_wheel_velocities_from_image(rectified_img)
+        if detections is None:
+            # inference failed, nothing to draw
+            detections = []
 
-        annotated_img = draw_detections(rectified_img, detections)
-        raw_img_data = CompressedImage(format="jpeg", data=self._jpeg.encode(annotated_img)).to_rawdata()
-        asyncio.run_coroutine_threadsafe(self.obj_img_publisher.publish(raw_img_data),
-                                         self._loop)
-
+        # wheels first: this is the time-critical command
         try:
             await self.pwm_publisher.publish(pwm.to_rawdata())
         except Exception:
             print("Error publishing wheels data.")
 
+        # LEDs: brake lights on when we stop, off when we move; only published when the state changes
         white = RGBA(
             r = 1.0,
             g = 1.0,
@@ -224,26 +237,32 @@ class MLAgent(Node):
             g = 0.0,
             a = 1.0,
         )
-        led_raw = None
-        if pwm.left == 0.0 and pwm.right == 0.0:
-            # we are in STOP mode publish the back lights red
+        stopped = pwm.left == 0.0 and pwm.right == 0.0
+        if stopped != self.stopped:
+            if stopped:
+                # we are in STOP mode publish the back lights red
+                led_raw: RawData = CarLights(
+                    front_left = white,
+                    front_right = white,
+                    back_left = red,
+                    back_right = red,
+                ).to_rawdata()
+            else:
+                # we are moving turn the brake lights off
+                led_raw: RawData = CarLights(
+                    front_left = white,
+                    front_right = white,
+                    back_left = black,
+                    back_right = black,
+                ).to_rawdata()
+            self.stopped = stopped
+            asyncio.run_coroutine_threadsafe(self.led_publisher.publish(led_raw), self._loop)
 
-            led_raw: RawData = CarLights(
-                front_left = white,
-                front_right = white,
-                back_left = red,
-                back_right = red,
-            ).to_rawdata()
-        else:
-            # we are moving turn the brake lights off
-            led_raw: RawData = CarLights(
-                front_left = white,
-                front_right = white,
-                back_left = black,
-                back_right = black,
-            ).to_rawdata()
-
-        asyncio.run_coroutine_threadsafe(self.led_publisher.publish(led_raw), self._loop)
+        # debug image with the detections drawn on top
+        annotated_img = draw_detections(rectified_img, detections)
+        raw_img_data = CompressedImage(format="jpeg", data=self._jpeg.encode(annotated_img)).to_rawdata()
+        asyncio.run_coroutine_threadsafe(self.obj_img_publisher.publish(raw_img_data),
+                                         self._loop)
 
     async def worker(self):
         await self.dtps_init()

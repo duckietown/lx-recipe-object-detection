@@ -1,2 +1,10 @@
 # LIST YOUR APT PACKAGES HERE
+# (Ubuntu 24.04-only packages are in dependencies-apt.noble.txt)
 unzip
+
+# libGL is required by the (non-headless) opencv-python wheel that ultralytics pulls into the editor image
+libgl1
+
+# used by the setup notebook to copy the collected images from the robot into the editor
+openssh-client
+sshpass

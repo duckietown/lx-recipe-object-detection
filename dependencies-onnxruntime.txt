@@ -1,0 +1,5 @@
+# ONNX Runtime, for base images that do not provide it (dt-commons, dt-vscode).
+# CPU inference on every architecture
+onnxruntime
+# CUDA inference on an x86_64 laptop (`--local`) with an NVIDIA GPU
+onnxruntime-gpu; platform_machine == "x86_64"
