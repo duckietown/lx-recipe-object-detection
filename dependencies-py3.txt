@@ -1,7 +1,7 @@
 # LIST YOUR PYTHON3 PACKAGES HERE
+# (ONNX Runtime is in dependencies-onnxruntime.txt: the Dockerfile installs it only when the base image does not
+#  already provide it, e.g., dt-machine-learning-base-environment provides the GPU builds)
 
-# CPU inference on every architecture (this is what runs on the robot)
-onnxruntime
-# CUDA inference on an x86_64 laptop (`--local`) with an NVIDIA GPU
-onnxruntime-gpu; platform_machine == "x86_64"
 lib-dt-computer-vision==1.0.0
+# dt-commons ships OpenCV; the Python 3.8 robot image (dt-machine-learning-base-environment on arm64v8) does not
+opencv-python-headless==4.9.0.80; python_version < "3.9"

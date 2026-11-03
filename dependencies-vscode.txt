@@ -5,6 +5,7 @@
 # amd64 and arm64 editors (plain CPU torch on arm64, CUDA-enabled torch on amd64).
 
 -r dependencies-py3.txt
+-r dependencies-onnxruntime.txt
 
 # SAM3 requires numpy < 2
 numpy>=1.26,<2

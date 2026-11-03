@@ -5,6 +5,8 @@
 !assets
 !packages
 !dependencies-apt.txt
+!dependencies-apt.noble.txt
+!dependencies-onnxruntime.txt
 !dependencies-py3.*
 !dependencies-vscode.txt
 !launchers

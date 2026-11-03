@@ -39,13 +39,13 @@ RUN mkdir -p "${REPO_PATH}"
 WORKDIR "${REPO_PATH}"
 
 # install apt dependencies
-COPY --from=recipe ./dependencies-apt.txt "/tmp/"
-RUN dt-apt-install /tmp/dependencies-apt.txt
+COPY --from=recipe ./dependencies-apt.txt ./dependencies-apt.noble.txt "/tmp/"
+RUN dt-apt-install /tmp/dependencies-apt.txt && dt-apt-install /tmp/dependencies-apt.noble.txt
 
 # install python3 dependencies
 ARG PIP_INDEX_URL="https://pypi.org/simple"
 ENV PIP_INDEX_URL=${PIP_INDEX_URL}
-COPY --from=recipe ./dependencies-py3.txt ./dependencies-vscode.txt "/tmp/"
+COPY --from=recipe ./dependencies-py3.txt ./dependencies-onnxruntime.txt ./dependencies-vscode.txt "/tmp/"
 RUN python3 -m pip install -r /tmp/dependencies-vscode.txt
 
 # copy the source code (recipe)
