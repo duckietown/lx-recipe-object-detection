@@ -9,8 +9,11 @@ ARG MAINTAINER="Liam P"
 ARG ARCH
 ARG DISTRO=ente
 ARG DOCKER_REGISTRY=docker.io
-ARG BASE_IMAGE=dt-commons
-ARG BASE_TAG=${DISTRO}-${ARCH}
+ARG BASE_IMAGE=dt-machine-learning-base-environment
+# JetPack major version of the NVIDIA Jetson the image is built on (set by `dts devel build` on a Duckiebot, empty
+# elsewhere): selects the base image's Jetson variant `<distro>-jetpack<N>-<arch>`, which uses the robot's GPU
+ARG JETPACK=
+ARG BASE_TAG=${DISTRO}${JETPACK:+-jetpack${JETPACK}}-${ARCH}
 ARG LAUNCHER=default
 
 # define base image
@@ -23,6 +26,7 @@ ARG DESCRIPTION
 ARG MAINTAINER
 ARG BASE_TAG
 ARG BASE_IMAGE
+ARG JETPACK
 ARG LAUNCHER
 # - buildkit
 ARG TARGETPLATFORM
