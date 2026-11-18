@@ -7,8 +7,9 @@ on; this recipe provides the Docker images, the agent that runs on the robot and
 ## Layout
 
 - `Dockerfile`: the workbench image, i.e., what `dts code build` / `dts code workbench` run on the robot (or on the
-  laptop with `--local`). It is based on `dt-commons` (build argument `BASE_IMAGE`) and only needs ONNX Runtime +
-  `lib-dt-computer-vision` on top of it; ONNX Runtime is installed only when the base image does not provide it. The
+  laptop with `--local`). It is based on `dt-machine-learning-base-environment` (build argument `BASE_IMAGE`) and
+  only needs `lib-dt-computer-vision` on top of it; ONNX Runtime is installed only when the base image does not
+  provide it, so it also builds on `dt-commons`. The
   `packages/` and `assets/` directories of the recipe and of the LX are merged into the image.
 - `Dockerfile.vscode`: the editor image (`dts code editor`). On top of the workbench dependencies it installs what the
   notebooks need to label (SAM3), train (ultralytics / torch) and export (ONNX) a model, see `dependencies-vscode.txt`.
@@ -40,23 +41,22 @@ on a Jetson Nano. The laptop (`--local`) therefore stays the recommended default
 
 ## Running on the robot's GPU
 
-`dt-machine-learning-base-environment` provides the JetPack 4.6 GPU build of ONNX Runtime on the robot (Python 3.8, with
-the TensorRT and CUDA providers; CUDA and TensorRT are mounted from the host) and `onnxruntime-gpu` on amd64. Building
-the workbench image on it (`ARG BASE_IMAGE=dt-machine-learning-base-environment` in the `Dockerfile`) gives the agent
-the Jetson's GPU with no code change. The recipe builds on both bases: the Python-version and Ubuntu-release specific
-dependencies are in `dependencies-py3.txt` (markers) and `dependencies-apt.noble.txt`.
-
-It becomes the default once that base image is published with Python 3.8 on arm64 (DTSW-7100); the arm64 image
-published today is an older Python 3.6 build. To try it on a robot before then, build the base on the robot from the
-DTSW-7100 branch of `dt-machine-learning-base-environment`, then the LX with a local copy of this recipe whose
-`BASE_IMAGE` is changed:
+The workbench image is built on `dt-machine-learning-base-environment`, which provides ONNX Runtime on every platform:
+the JetPack 4.6 GPU build on the robot (Python 3.8, with the TensorRT and CUDA providers; CUDA and TensorRT are mounted
+from the host), `onnxruntime-gpu` on amd64 laptops, and the CPU build on other arm64 machines such as a Mac with Apple
+Silicon. A Mac and a Jetson are both `linux/arm64` to Docker, so the robot's GPU build is a separate tag of the base,
+`ente-jetpack4-arm64v8`: `dts code build` passes `JETPACK=4` when it builds on a Duckiebot, and the `Dockerfile` adds it
+to the base tag. On a Mac (`--local`), or on the robot with an older `dts`, the plain `ente-arm64v8` base is used and
+inference runs on the CPU. The agent picks the best provider available, so the code is the same everywhere.
 
 ```
-dts devel build -H ROBOT                         # in dt-machine-learning-base-environment (DTSW-7100 branch)
-dts code build -R ROBOT --no-pull --recipe ../lx-recipe-object-detection    # in the LX, recipe with BASE_IMAGE changed
+dts code build -R ROBOT                          # on the robot: GPU
+dts code build -R ROBOT --local                  # on the laptop: GPU on an NVIDIA laptop, CPU on a Mac
 ```
 
-(`--no-pull` keeps the base image built on the robot instead of pulling the published one.)
+The recipe also builds on `dt-commons`: in the `Dockerfile`, set `BASE_IMAGE` to `dt-commons` and `BASE_TAG` to
+`${DISTRO}-${ARCH}` (`dt-commons` has no Jetson variant). The Python-version and Ubuntu-release specific dependencies
+are in `dependencies-py3.txt` (markers) and `dependencies-apt.noble.txt`.
 
 The first time the TensorRT provider sees a model it builds an engine, which takes minutes on a Jetson Nano. The
 engine is cached in `trt_cache/` next to the model, inside the container, so it is rebuilt when the container is
